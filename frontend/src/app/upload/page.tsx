@@ -5,12 +5,9 @@ import {
   Upload,
   Camera,
   FileText,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
   X,
   Sparkles,
-  ArrowRight,
   RefreshCw,
   Eye,
 } from "lucide-react";
@@ -101,7 +98,7 @@ export default function UploadPage() {
       setSelectedFiles([]);
 
       // Auto-refresh upload items status
-      pollUploadStatus(res.map((r) => r.file_id));
+      pollUploadStatus();
     } catch (err: any) {
       alert(err.message || "Upload failed");
     } finally {
@@ -109,7 +106,7 @@ export default function UploadPage() {
     }
   };
 
-  const pollUploadStatus = (fileIds: string[]) => {
+  const pollUploadStatus = () => {
     const interval = setInterval(async () => {
       try {
         const invList = await api.invoices.list({ client_id: selectedClient });

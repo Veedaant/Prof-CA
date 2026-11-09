@@ -1,4 +1,3 @@
-import React from "react";
 import { SentGroup } from "@/lib/sent";
 import { periodLabel } from "@/lib/period";
 

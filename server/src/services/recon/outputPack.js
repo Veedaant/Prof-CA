@@ -1,5 +1,5 @@
 import {
-  prep, totalOf, periodsBetween, matchDocuments, monthlyTable, rateTable, partyTable, exceptionTable, docListTable, discrepancyList,
+  prep, periodsBetween, matchDocuments, monthlyTable, rateTable, partyTable, exceptionTable, docListTable, discrepancyList,
   annotateMonths, monthDiscrepancies, groupTotals, aggregateDocs, docKey, r2, TOL,
 } from "./engine.js";
 import { loadBooks, loadPortal } from "./books.js";
@@ -112,7 +112,6 @@ function booksReport(periods, ledRows, invRows) {
 
 function workingReport(periods, invRows) {
   const P = prep(invRows);
-  const entries = entryRows(P);
   return {
     title: "GSTR-1 working compiled from approved invoices",
     sections: [

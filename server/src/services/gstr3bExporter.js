@@ -151,7 +151,7 @@ export function computeGstr3b(outwardDocs, inwardDocs, clientGstin, taxPeriod = 
   };
 }
 
-export async function generateGstr3bWorkbook(res, { clientName, clientGstin, taxPeriod, outwardDocs, inwardDocs }) {
+export async function generateGstr3bWorkbook(res, { clientName, clientGstin, taxPeriod }) {
   const wb = new ExcelJS.Workbook();
   const border = { style: "thin", color: { argb: "FFD9D9D9" } };
   const borders = { left: border, right: border, top: border, bottom: border };

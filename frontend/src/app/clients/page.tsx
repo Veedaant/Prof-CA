@@ -2,16 +2,9 @@ import React, { useState, useEffect } from "react";
 import Link from "@/lib/router";
 import { useRouter } from "@/lib/router";
 import {
-  Users,
-  Building,
   Plus,
-  FileText,
   Mail,
   Phone,
-  MapPin,
-  CheckCircle,
-  AlertCircle,
-  RefreshCw,
   Search,
 } from "lucide-react";
 
@@ -25,7 +18,6 @@ export default function ClientsPage() {
   const { user, loading: authLoading } = useAuth();
 
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -47,14 +39,11 @@ export default function ClientsPage() {
   }, [user, authLoading, router]);
 
   const loadClients = async () => {
-    setLoading(true);
     try {
       const data = await api.clients.list();
       setClients(data);
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 

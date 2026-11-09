@@ -11,7 +11,6 @@ import { gate3b } from "./gstr3b.js";
 
 const router = Router();
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-const APPROVED = ["approved", "auto_approved"];
 const exportSchema = z.object({ client_id: z.string(), tax_period: z.string().regex(/^\d{4}-\d{2}$/, "must be YYYY-MM") });
 
 const downloadUrl = (id) => `/api/exports/download/${id}?token=${generateSignedToken(id, 1440)}`;

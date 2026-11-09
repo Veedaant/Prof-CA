@@ -1,4 +1,4 @@
-import { normGstin, normInv, normName } from "../recon/sheetParser.js";
+import { normInv } from "../recon/sheetParser.js";
 import { fyStartYear, monthLabel, monthsOfFy } from "./readers.js";
 
 const r2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
@@ -342,7 +342,7 @@ function buildDifferences(x) {
   }
 
   // 2. month-wise differences
-  const diagnose = (setKey, m, d, A, B) => {
+  const diagnose = (setKey, m, d) => {
     const tot = Math.abs(d.taxable);
     const idx = months.indexOf(m);
     const near = (a, b) => Math.abs(a) > 0 && Math.abs(a + b) <= Math.max(ROUND, Math.abs(a) * 0.02);
@@ -390,7 +390,7 @@ function buildDifferences(x) {
       if (!r.hasA || !r.hasB || r.undated) continue;
       const big = Math.abs(r.d.taxable) > TOL || ["igst", "cgst", "sgst"].some((h) => Math.abs(r.d[h]) > TOL);
       if (!big) continue;
-      const dg = diagnose(key, r.month, r.d, r.a, r.b);
+      const dg = diagnose(key, r.month, r.d);
       push({ area: label, period: r.month, item: `${label}: ${monthLabel(r.month)}`, a_label: la, a: r.a, b_label: lb, b: r.b, d: r.d, ...dg });
     }
   }

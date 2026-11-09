@@ -198,7 +198,7 @@ function roundingRow(x) {
 }
 
 /** All rows of the Differences sheet, one per problem, in the order they should be worked through. */
-export function buildRows(findings, rounding = [], period = "") {
+export function buildRows(findings, rounding = []) {
   const rows = [];
   const merged = new Set();
 

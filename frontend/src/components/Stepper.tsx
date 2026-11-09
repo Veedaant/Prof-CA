@@ -1,4 +1,3 @@
-import React from "react";
 import { Check } from "lucide-react";
 
 export const STEPS = ["Uploaded", "Data retrieved", "Your verification", "Sent to CA", "Excel downloaded"];

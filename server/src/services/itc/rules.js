@@ -78,12 +78,12 @@ const BLOCKS = [
   },
   {
     id: "construction", re: /construction (of|service|work|material)|civil (work|works)|building (work|material|construction)|\bcement\b|\bbricks?\b|\bsand\b|\brcc\b|architect/,
-    ok: (p) => false, conditional: (p) => p.works, kind: "Ineligible",
+    ok: () => false, conditional: (p) => p.works, kind: "Ineligible",
     provision: "Section 17(5)(d) CGST Act (as amended retrospectively by the Finance Act 2025, after the Supreme Court's decision in Safari Retreats): ITC on goods or services for construction of an immovable property on own account, other than plant and machinery, is blocked even if used in business. Plant and machinery excludes land, buildings and civil structures. For a developer selling units or a contractor, check the 17(5)(c) exception and the property's status.",
   },
   {
     id: "repairs_capital", re: /renovation|alteration|addition to (the )?(building|premises)|interior (work|decoration)/,
-    ok: (p) => false, conditional: () => true, kind: "Check",
+    ok: () => false, conditional: () => true, kind: "Check",
     provision: "Section 17 Explanation CGST Act: \"construction\" includes renovation, additions, alterations and repairs to the extent of capitalisation. ITC is blocked if the spend is capitalised in the books under section 17(5)(d); it is allowed if it is charged to the profit and loss account as repairs and maintenance.",
   },
   {
@@ -155,7 +155,7 @@ export function isRcm(book, g2b) {
  * @returns {{code, label, provision, reason}}
  *   code: eligible | conditional | ineligible | ineligible_16_4 | hold | rcm | not_booked | no_tax | reversal
  */
-export function judge({ book, g2b, how, profile, period, clientGstin, rcm: rcmFlag, rcmRule }) {
+export function judge({ book, g2b, profile, period, rcm: rcmFlag, rcmRule }) {
   const doc = book || g2b;
   const text = `${book?.nature || ""} ${book?.party || g2b?.party || ""}`;
   const date = book?.date || g2b?.date;

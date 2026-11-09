@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link, { useRouter } from "@/lib/router";
 import { useAuth } from "@/context/AuthContext";
 import { api, TrackedRequest } from "@/lib/api";

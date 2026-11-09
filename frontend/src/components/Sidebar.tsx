@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/lib/router";
 import { usePathname } from "@/lib/router";
 import { useAuth } from "@/context/AuthContext";
@@ -44,8 +44,8 @@ export function Sidebar({ className = "" }: { className?: string }) {
   ];
 
   return (
-    <aside className={`w-64 bg-white text-slate-900 flex flex-col justify-between shrink-0 border-r border-slate-200 ${className}`}>
-      <div>
+    <aside className={`w-64 bg-white text-slate-900 flex flex-col justify-between shrink-0 border-r border-slate-200 sticky top-0 h-screen self-start ${className}`}>
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 py-5 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center text-white">
@@ -83,7 +83,7 @@ export function Sidebar({ className = "" }: { className?: string }) {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-slate-200 space-y-3">
+      <div className="p-4 border-t border-slate-200 space-y-3 shrink-0">
         {import.meta.env.DEV && (
           <div className="rounded-lg border border-dashed border-slate-300 p-2">
             <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5">Dev: switch role</p>

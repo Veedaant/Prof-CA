@@ -208,7 +208,7 @@ export function analyse({ books, g2b, gstr1, businessNature, period, clientGstin
     const ra = assessRcm({ b, g, promoter });
     const ex = explain(b, g, how, ctx, ra);
     const doc = b || g;
-    const elig = judge({ book: b, g2b: g, how, profile, period, clientGstin, rcm: ra.mode === "rcm", rcmRule: ra.rule });
+    const elig = judge({ book: b, g2b: g, profile, period, rcm: ra.mode === "rcm", rcmRule: ra.rule });
     const line = {
       type: doc.type, src: g?.src || "books", gstin: (b?.gstin || g?.gstin || ""), party: b?.party || g?.party || "", inv_no: b?.inv_no || g?.inv_no || "",
       date: b?.date || g?.date || null, nature: b?.nature || "",

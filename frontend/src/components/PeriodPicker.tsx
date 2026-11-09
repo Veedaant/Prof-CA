@@ -1,4 +1,3 @@
-import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { currentPeriod, periodLabel, shiftPeriod } from "@/lib/period";
 

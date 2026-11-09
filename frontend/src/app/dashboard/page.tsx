@@ -13,19 +13,14 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import {
-  FileText,
   AlertCircle,
   CheckCircle,
   Clock,
-  Filter,
   Search,
   ChevronLeft,
   ChevronRight,
   Eye,
-  ExternalLink,
-  Building,
   Calendar,
-  Sparkles,
   ArrowUpDown,
   Download,
 } from "lucide-react";
@@ -176,7 +171,6 @@ function DashboardContent() {
         cell: ({ row }) => {
           const status = row.original.review_status;
           const flags = row.original.flags || [];
-          const hasErrors = flags.some((f) => f.severity === "error");
 
           if (status === "auto_approved") {
             return (

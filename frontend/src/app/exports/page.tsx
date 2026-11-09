@@ -1,18 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { currentPeriod } from "@/lib/period";
 import { useRouter } from "@/lib/router";
 import {
   Download,
   FileSpreadsheet,
-  Calendar,
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Sparkles,
   RefreshCw,
-  Building,
-  Layers,
-  ArrowRight,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";

@@ -510,16 +510,6 @@ router.post("/:id/review", requireStaff, wrap(async (req, res) => {
   res.json(await detail(await loadInvoice(req, id)));
 }));
 
-router.post("/:id/retry", requireStaff, wrap(async (req, res) => {
-  const id = uuidParam(req.params.id, "Invoice");
-  const inv = await loadInvoice(req, id);
-  if (!inv) throw new HttpError(404, "Invoice not found");
-  if (!inv.source_file_id) throw new HttpError(404, "No source file for this invoice");
-  await db.query("update invoice_files set status='queued', error_message=null where id=$1", [inv.source_file_id]);
-  queue.add(() => processFile(inv.source_file_id, inv.invoice_type, inv.tax_period));
-  res.json({ message: "Extraction task re-queued successfully" });
-}));
-
 // Files left queued/processing by a restart would otherwise stay stuck forever.
 async function resumeUnfinished() {
   const rows = await db.query("select id, doc_category, tax_period from invoice_files where status in ('queued','processing')");

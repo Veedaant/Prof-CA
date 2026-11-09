@@ -3,8 +3,6 @@ import Link from "@/lib/router";
 import { useRouter, useParams } from "@/lib/router";
 import {
   FileText,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
   ZoomIn,
   ZoomOut,
@@ -19,14 +17,11 @@ import {
   History,
   QrCode,
   ArrowLeft,
-  Sparkles,
-  ShieldAlert,
-  HelpCircle,
   RefreshCw,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
-import { api, API_ORIGIN, Invoice, LineItem, ValidationFlag, AuditLog } from "@/lib/api";
+import { api, API_ORIGIN, Invoice, LineItem } from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 
 const INDIAN_STATES = [
@@ -104,7 +99,6 @@ export default function ReviewPage() {
   // Document viewer controls
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
-  const [pdfPage, setPdfPage] = useState(0);
   const [activeTab, setActiveTab] = useState<"fields" | "audit">("fields");
 
   useEffect(() => {

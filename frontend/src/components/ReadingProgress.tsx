@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Progress bar for a document being read. The server reports milestones; between them the bar eases forward so the long AI step still visibly moves. */
 export function ReadingProgress({ pct, label }: { pct: number; label?: string | null }) {

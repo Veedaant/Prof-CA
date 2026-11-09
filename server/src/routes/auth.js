@@ -62,6 +62,4 @@ router.post("/register", wrap(async (req, res) => {
 
 router.get("/me", authenticate, wrap(async (req, res) => res.json(await userWithFirm(req.user))));
 
-router.post("/logout", authenticate, (_req, res) => res.json({ message: "Successfully logged out" }));
-
 export default router;

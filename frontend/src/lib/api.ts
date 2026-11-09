@@ -367,13 +367,6 @@ export const api = {
       if (!res.ok) throw new Error("Failed to create client");
       return res.json();
     },
-    get: async (id: string): Promise<Client> => {
-      const res = await fetch(`${API_BASE}/clients/${id}`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error("Failed to fetch client");
-      return res.json();
-    },
   },
 
   invoices: {
@@ -485,13 +478,6 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
-    retry: async (id: string) => {
-      const res = await fetch(`${API_BASE}/invoices/${id}/retry`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-      });
-      return res.json();
-    },
   },
 
   users: {
@@ -601,9 +587,6 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch export history");
       return res.json();
     },
-    getDownloadUrl: (exportId: string) => {
-      return `${API_BASE}/exports/download/${exportId}`;
-    },
     downloadFile: async (downloadUrl: string, fileName?: string) => {
       const target = downloadUrl.startsWith("/api") ? API_BASE + downloadUrl.slice(4) : downloadUrl;
       const res = await fetch(target);
@@ -665,11 +648,6 @@ export const api = {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     },
-    getSampleTemplateUrl: () => `${API_BASE}/reconciliation/sample-template`,
-  },
-
-  getFileViewUrl: (fileId: string, token: string, asImage = false, page = 0) => {
-    return `${API_BASE}/files/${fileId}/view?token=${token}${asImage ? "&as_image=true" : ""}&page=${page}`;
   },
 };
 

@@ -9,14 +9,12 @@ const border = { style: "thin", color: { argb: "FFD9D9D9" } };
 const borders = { left: border, right: border, top: border, bottom: border };
 const money = "#,##0.00";
 const r2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
-const inr = (v) => `₹${Number(v).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const head = (c) => {
   c.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
   c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F497D" } };
   c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
   c.border = borders;
 };
-const statusOf = (f) => (f.dismissed ? `Accepted${f.dismissed_reason ? `: ${f.dismissed_reason}` : ""}` : "Open");
 
 function textCell(c, v, wrap = true) {
   c.value = v ?? "";
@@ -34,7 +32,7 @@ function textCell(c, v, wrap = true) {
 export async function generateVerificationWorkbook({ clientName, clientGstin, period, verification, runAt }) {
   const wb = new ExcelJS.Workbook();
   const live = verification.findings.filter((f) => !f.hidden);
-  const rows = buildRows(live, verification.rounding || [], period);
+  const rows = buildRows(live, verification.rounding || []);
 
   // ------------------------------------------------------------ sheet 1: summary
   const sum = wb.addWorksheet("Summary");

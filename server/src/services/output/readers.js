@@ -1,7 +1,7 @@
 import path from "node:path";
 import { readSheets, parseSheetFile, toNum, toDate, normGstin } from "../recon/sheetParser.js";
 import { parseGstr3bPdf, parseGstr3bText } from "../recon/gstr3bParser.js";
-import { candidates, emptyRow, findHeader, isTotalRow, mapColumns, norm } from "../itc/readers.js";
+import { emptyRow, findHeader, isTotalRow, norm } from "../itc/readers.js";
 
 const r2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
 const SLABS = [0.25, 1, 1.5, 3, 5, 7.5, 12, 18, 28, 40];
@@ -30,11 +30,6 @@ export function periodFromName(name) {
   return null;
 }
 const monthOfDate = (d) => (d ? String(d).slice(0, 7) : "");
-function majorityMonth(dates) {
-  const c = new Map();
-  for (const d of dates) { const m = monthOfDate(d); if (m) c.set(m, (c.get(m) || 0) + 1); }
-  return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-}
 const stateCode = (v) => { const m = /^\s*(\d{2})/.exec(String(v || "")); return m ? m[1] : ""; };
 
 // ------------------------------------------------------------------ GSTR-1 Excel (portal download or offline tool)

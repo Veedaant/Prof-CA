@@ -8,7 +8,6 @@ import { emptyFigures } from "./gstr3bParser.js";
 const TAX = ["igst", "cgst", "sgst", "cess"];
 const OUT_FIELDS = ["taxable", "igst", "cgst", "sgst"];
 const ITC_FIELDS = ["igst", "cgst", "sgst", "cess"];
-const sign = (v) => (v > 0 ? "+" : "");
 const fmt = (n) => Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const addT = (...ts) => { const o = zero(); for (const t of ts) for (const k of Object.keys(o)) o[k] = r2(o[k] + (Number(t?.[k]) || 0)); return o; };
 const taxSum = (t) => r2(TAX.reduce((s, k) => s + (t?.[k] || 0), 0));
@@ -282,7 +281,6 @@ export async function buildGstr9(firmId, client, fy) {
   const t4 = [];
   const line = (table, desc, b, g, t, suggested) => t4.push({ table, desc, books_taxable: b?.taxable ?? 0, books_tax: b ? taxSum(b) : 0, g1_taxable: pick(g, "taxable"), g1_tax: g ? taxSum(g) : null, tb_taxable: pick(t, "taxable"), tb_tax: t ? taxSum(t) : null, sug_taxable: suggested?.taxable ?? 0, sug_tax: suggested ? taxSum(suggested) : 0 });
   const sug = (b, g) => (G ? g : b);
-  const nonRcm3b = T3 && addT(T3.a);
   line("4A", "Supplies made to un-registered persons (B2C)", B.b2c, G?.b2c, null, sug(B.b2c, G?.b2c));
   line("4B", "Supplies made to registered persons (B2B)", B.b2b, G?.b2b, null, sug(B.b2b, G?.b2b));
   line("4C-4F", "Zero rated / SEZ / deemed exports / advances (enter manually from shipping bills / receipts)", zero(), null, T3 ? T3.b : null, T3 ? T3.b : zero());
