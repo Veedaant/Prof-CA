@@ -1,0 +1,17 @@
+{
+  "name": "gst-invoice-automator",
+  "private": true,
+  "version": "1.0.0",
+  "description": "GST Invoice Automator for CA Firms in India (React + Express + Node, Supabase Postgres)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix frontend install",
+    "dev": "npm --prefix server run dev",
+    "dev:web": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix server start",
+    "migrate": "npm --prefix server run migrate",
+    "seed": "npm --prefix server run seed",
+    "test": "npm --prefix server test"
+  }
+}
