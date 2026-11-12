@@ -67,7 +67,8 @@ const sumKey = (type, gstin, party, no) => `${type}|${normGstin(gstin) || "N:" +
 
 // ------------------------------------------------------------------ the books: "ITC as per books"
 const BOOKS = {
-  party: [/^party'?s? name/, /party name/, /(supplier|vendor) name/, /trade\/?legal/, /^name of (the )?(party|supplier)/, /^party$/, /^supplier$/, /^vendor$/, /^name$/],
+  // in a ledger-style register "Particulars" (or the ledger or account name) is the party; it is read as the nature only when the file has a separate party column
+  party: [/^party'?s? name/, /party name/, /(supplier|vendor) name/, /trade\/?legal/, /^name of (the )?(party|supplier)/, /^party$/, /^supplier$/, /^vendor$/, /^name$/, /^particulars$/, /^ledger( name)?$/, /^account( name)?$/],
   gstin: [/gstin/, /gst no/, /\buin\b/],
   invno: [/invoice (no|number)/, /inv(oice)? ?no/, /bill (no|number)/, /document (no|number)/, /note (no|number)/, /voucher (no|number)/, /^invoice$/, /^bill$/],
   date: [/invoice date/, /inv(oice)? date/, /bill date/, /document date/, /note date/, /^date$/],

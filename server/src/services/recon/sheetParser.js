@@ -1,5 +1,7 @@
 import ExcelJS from "exceljs";
+import path from "node:path";
 import { Readable } from "node:stream";
+import { readOldSheets } from "./oldExcel.js";
 import { extractStateCode } from "../validators.js";
 
 const n2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
@@ -114,13 +116,24 @@ function score(headers) {
   return s;
 }
 
+/** Every spreadsheet type the uploads take: Excel of any version (97-2003 .xls, .xlsx, .xlsm, binary .xlsb) and CSV. */
+export const SHEET_EXTS = [".xlsx", ".xlsm", ".xlsb", ".xls", ".csv"];
+export const isSheetFile = (name) => SHEET_EXTS.includes(path.extname(String(name || "")).toLowerCase());
+
 export async function readSheets(buffer, filename) {
+  // .xls, .xlsb and the HTML / XML "spreadsheets" saved as .xls are read by the old-format reader
+  if (!/\.(csv|xlsx|xlsm)$/i.test(filename)) return readOldSheets(buffer);
   const wb = new ExcelJS.Workbook();
   if (/\.csv$/i.test(filename)) {
     const ws = await wb.csv.read(Readable.from(buffer), { map: (v) => v });
     ws.name = "csv";
   } else {
-    await wb.xlsx.load(buffer);
+    try {
+      await wb.xlsx.load(buffer);
+    } catch (e) {
+      // an old-format file renamed to .xlsx
+      try { return readOldSheets(buffer); } catch { throw e; }
+    }
   }
   const sheets = [];
   wb.eachSheet((ws) => {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@/lib/router";
-import { Bell, CheckCheck, FileText, MessageSquare, ShieldCheck, Upload, AlertTriangle } from "lucide-react";
+import { Bell, CheckCheck, FileText, MessageSquare, ShieldCheck, Upload, AlertTriangle, Landmark, ClipboardCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AppNotification, notificationsApi } from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
@@ -10,7 +10,7 @@ const card = "bg-white border border-slate-200 rounded-2xl";
 
 const ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   doc_sent: FileText, doc_unsent: FileText, doc_edited: FileText, doc_rejected: AlertTriangle,
-  ledger_uploaded: Upload, feedback: MessageSquare, resubmitted: MessageSquare, verified: ShieldCheck,
+  ledger_uploaded: Upload, banking_upload: Landmark, audit_checklist: ClipboardCheck, audit_upload: ClipboardCheck, audit_query: MessageSquare, audit_reply: MessageSquare, feedback: MessageSquare, resubmitted: MessageSquare, verified: ShieldCheck,
 };
 
 function ago(iso: string) {

@@ -35,6 +35,18 @@ function numsAfter(lines, start, count, span = 12) {
   return nums;
 }
 
+/** The figures at the end of a line: the last `count` numbers of the run of numbers that closes it, or null when the line has fewer. */
+function tailNums(line, count) {
+  const nums = [];
+  const tokens = line.split(/\s+/).filter(Boolean);
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const c = tokens[i].replace(/[₹,]/g, "");
+    if (!NUM.test(c) || /^\(?[a-z]\)?$/i.test(c)) break;
+    nums.unshift(Number(c.replace(/^\((.*)\)$/, "-$1")));
+  }
+  return nums.length >= count ? nums.slice(-count) : null;
+}
+
 /** Best-effort parse of the GSTR-3B PDF text. Returns figures + how many lines were located. */
 export function parseGstr3bText(text) {
   const f = emptyFigures();
@@ -61,7 +73,8 @@ export function parseGstr3bText(text) {
     if (i < 0) return;
     const inline = outLines[i].replace(re, " ");
     const merged = [inline, ...outLines.slice(i + 1, i + 12)];
-    const nums = numsAfter(merged, 0, 5);
+    // the figures end the line; numbers inside the label ("other than 1 & 2 above", "rules 38, 42 & 43") are not figures
+    const nums = tailNums(outLines[i], 5) || numsAfter(merged, 0, 5);
     if (nums.length >= 5) { const [t, ig, c, s, ce] = nums; f.outward[key] = { taxable: n2(t), igst: n2(ig), cgst: n2(c), sgst: n2(s), cess: n2(ce) }; found++; }
   };
   out("a", /\(a\)\s*Outward taxable supplies \(other than zero rated/i);
@@ -74,7 +87,7 @@ export function parseGstr3bText(text) {
     const i = itcLines.findIndex((l) => re.test(l));
     if (i < 0) return;
     const inline = itcLines[i].replace(re, " ");
-    const nums = numsAfter([inline, ...itcLines.slice(i + 1, i + 10)], 0, 4);
+    const nums = tailNums(itcLines[i], 4) || numsAfter([inline, ...itcLines.slice(i + 1, i + 10)], 0, 4);
     if (nums.length >= 4) { const [ig, c, s, ce] = nums; f.itc[key] = { igst: n2(ig), cgst: n2(c), sgst: n2(s), cess: n2(ce) }; found++; }
   };
   itc("import_goods", /\(1\)\s*Import of goods/i);

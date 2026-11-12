@@ -4,6 +4,7 @@ import path from "node:path";
 import { db } from "../db/index.js";
 import { config } from "../config.js";
 import { HttpError, authenticate } from "../auth.js";
+import { SHEET_EXTS } from "../services/recon/sheetParser.js";
 import { isUuid, wrap } from "../http.js";
 import { readBooksOutput, readGstr1Excel, readGstr3bFile, fyOfPeriod, monthsOfFy, periodFromName } from "../services/output/readers.js";
 import { analyseOutput } from "../services/output/analyse.js";
@@ -88,10 +89,10 @@ router.post("/upload", upload.array("files", 40), wrap(async (req, res) => {
       const ext = path.extname(name).toLowerCase();
       let parsed;
       if (kind === "books") {
-        if (![".xlsx", ".xlsm", ".csv"].includes(ext)) throw new Error("Upload an Excel (.xlsx) or CSV file.");
+        if (!SHEET_EXTS.includes(ext)) throw new Error("Upload an Excel file (any version) or a CSV file.");
         parsed = await readBooksOutput(f.buffer, name);
       } else if (kind === "gstr1") {
-        if (![".xlsx", ".xlsm", ".csv"].includes(ext)) throw new Error("Upload the GSTR-1 Excel.");
+        if (!SHEET_EXTS.includes(ext)) throw new Error("Upload the GSTR-1 Excel (any version) or CSV.");
         parsed = await readGstr1Excel(f.buffer, name, { clientGstin: client.gstin });
       } else parsed = await readGstr3bFile(f.buffer, name);
       const warnings = [...(parsed.warnings || [])];

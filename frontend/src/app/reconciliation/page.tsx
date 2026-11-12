@@ -339,7 +339,7 @@ export default function ReconciliationPage() {
                       Reconcile Invoices with Client Register
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Upload an Excel (.xlsx) or CSV file containing the client's internal sales/purchase register to detect missing invoices, value mismatches, and date conflicts.
+                      Upload an Excel (any version) or CSV file containing the client's internal sales/purchase register to detect missing invoices, value mismatches, and date conflicts.
                     </p>
                   </div>
 
@@ -356,7 +356,7 @@ export default function ReconciliationPage() {
                   <div className="flex-1 w-full">
                     <input
                       type="file"
-                      accept=".xlsx,.xls,.csv"
+                      accept=".xlsx,.xlsm,.xls,.xlsb,.csv"
                       onChange={(e) => setRegisterFile(e.target.files?.[0] || null)}
                       className="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-xl p-1 bg-slate-50"
                     />

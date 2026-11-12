@@ -181,7 +181,7 @@ export function Gstr3bLedgerUpload({ clientId, period }: { clientId: string; per
             Excel or CSV is read directly; a PDF or a clear photo is read with AI.
           </p>
         </div>
-        <BatchPicker accept=".xlsx,.xlsm,.csv,.pdf,.png,.jpg,.jpeg" busy={busy} noun="purchase ledger" onUpload={upload} />
+        <BatchPicker accept=".xlsx,.xlsm,.xls,.xlsb,.csv,.pdf,.png,.jpg,.jpeg" busy={busy} noun="purchase ledger" onUpload={upload} />
         {msg && <p className={`text-sm rounded-lg px-3 py-2 border ${msg.ok ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-rose-50 border-rose-200 text-rose-700"}`}>{msg.text}</p>}
       </div>
       <div className="space-y-2">

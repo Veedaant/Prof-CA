@@ -4,7 +4,7 @@ import { db } from "../db/index.js";
 import { config } from "../config.js";
 import { HttpError, authenticate } from "../auth.js";
 import { isUuid, wrap } from "../http.js";
-import { parseSheetFile, normInv } from "../services/recon/sheetParser.js";
+import { parseSheetFile, normInv, isSheetFile } from "../services/recon/sheetParser.js";
 import { parseGstr3bPdf, emptyFigures } from "../services/recon/gstr3bParser.js";
 import { extractLedgerWithAi } from "../services/recon/ledgerAi.js";
 import { notify } from "../services/notify.js";
@@ -88,7 +88,7 @@ router.post("/files", upload.array("files", 24), wrap(async (req, res) => {
       let fileRows;
       if (/\.(pdf|png|jpe?g)$/i.test(f.originalname)) {
         try { fileRows = (await extractLedgerWithAi(f.buffer, f.originalname, side)).rows; ai = true; } catch (e) { throw new HttpError(422, `${f.originalname}: ${e.message || "could not be read"}`); }
-      } else if (/\.(xlsx|xlsm|csv)$/i.test(f.originalname)) {
+      } else if (isSheetFile(f.originalname)) {
         try { fileRows = (await parseSheetFile(f.buffer, f.originalname, { kind: "ledger", clientGstin: c.gstin })).rows; } catch (e) { throw new HttpError(422, `${f.originalname}: ${e.message || "could not be read"}`); }
       } else {
         throw new HttpError(422, `${f.originalname}: upload an Excel, CSV, PDF or image file`);
@@ -147,7 +147,7 @@ router.post("/files", upload.array("files", 24), wrap(async (req, res) => {
         results.push({ ...row, warning: "Read with AI - the CA will check these entries against your documents." });
         continue;
       }
-      if (!/\.(xlsx|xlsm|csv)$/i.test(f.originalname)) throw new HttpError(422, "Upload an Excel (.xlsx), CSV, PDF or image file");
+      if (!isSheetFile(f.originalname)) throw new HttpError(422, "Upload an Excel (any version), CSV, PDF or image file");
       let parsed;
       try { parsed = await parseSheetFile(f.buffer, f.originalname, { kind: LEDGER_KINDS.includes(kind) ? "ledger" : "portal", clientGstin: c.gstin }); } catch (e) { throw new HttpError(422, e.message || "Could not read the file"); }
       data = { rows: parsed.rows, meta: { sheets: parsed.sheets_used } };

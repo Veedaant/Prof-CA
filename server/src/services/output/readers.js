@@ -1,5 +1,5 @@
 import path from "node:path";
-import { readSheets, parseSheetFile, toNum, toDate, normGstin } from "../recon/sheetParser.js";
+import { readSheets, parseSheetFile, toNum, toDate, normGstin, SHEET_EXTS } from "../recon/sheetParser.js";
 import { parseGstr3bPdf, parseGstr3bText } from "../recon/gstr3bParser.js";
 import { emptyRow, findHeader, isTotalRow, norm } from "../itc/readers.js";
 
@@ -325,7 +325,7 @@ export async function readGstr3bFile(buffer, filename) {
   const ext = path.extname(filename).toLowerCase();
   let parsed;
   if (ext === ".pdf") parsed = await parseGstr3bPdf(new Uint8Array(buffer));
-  else if ([".xlsx", ".xlsm", ".csv"].includes(ext)) {
+  else if (SHEET_EXTS.includes(ext)) {
     const sheets = await readSheets(buffer, filename);
     // each row becomes one line of text: the label followed by its figures, as in the PDF
     const text = sheets.map((sh) => sh.rows.map((r) => r.filter((c) => c !== "" && c != null).map((c) => (typeof c === "number" ? String(c) : String(c))).join(" ")).join("\n")).join("\n");

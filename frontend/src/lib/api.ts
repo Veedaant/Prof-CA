@@ -829,6 +829,271 @@ export const outputApi = {
   },
 };
 
+/* ------------------------------ banking ------------------------------ */
+
+export type BankFileKind = "statement" | "sanction_letter" | "repayment_schedule" | "other";
+export interface BankFile { id: string; kind: BankFileKind; name: string; size: number; created_at: string }
+export interface BankSubmission {
+  id: string; section: "statement" | "loan"; account_number: string; bank_name: string; is_other_bank: boolean;
+  fy: string | null; period_from: string | null; period_to: string | null;
+  uploaded_by_name: string | null; uploaded_by_role: string | null; created_at: string; files: BankFile[];
+}
+export interface BankingState {
+  client: { id: string; name: string; gstin: string | null }; banks: string[];
+  statements: BankSubmission[]; loans: BankSubmission[];
+}
+async function bank(path: string, init?: RequestInit, json = true) {
+  const res = await fetch(`${API_BASE}/banking${path}`, { ...init, headers: getAuthHeaders(json) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Request failed");
+  }
+  return res.json();
+}
+export const bankingApi = {
+  state: (clientId: string): Promise<BankingState> => bank(`?client_id=${clientId}`),
+  upload: (section: "statement" | "loan", clientId: string, form: { account: string; bank: string; otherBank: string; fy: string; periodFrom: string; periodTo: string }, files: Partial<Record<BankFileKind, File[]>>): Promise<{ ok: boolean; id: string; files: number }> => {
+    const fd = new FormData();
+    fd.append("client_id", clientId); fd.append("section", section);
+    fd.append("account_number", form.account); fd.append("bank", form.bank); fd.append("other_bank_name", form.otherBank);
+    fd.append("fy", form.fy); fd.append("period_from", form.periodFrom); fd.append("period_to", form.periodTo);
+    for (const [kind, list] of Object.entries(files)) (list || []).forEach((f) => fd.append(kind, f));
+    return bank("/upload", { method: "POST", body: fd }, false);
+  },
+  remove: (id: string) => bank(`/${id}`, { method: "DELETE" }),
+  download: async (fileId: string) => {
+    const res = await fetch(`${API_BASE}/banking/files/${fileId}/download`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not download the file");
+  },
+};
+
+/* the CA firm's side: ledgers, 26AS, TIS, loan details and the workings */
+
+export type StaffFileKind = "bank_ledger" | "loan_ledger" | "form_26as" | "tis";
+export interface StaffFile { id: string; kind: StaffFileKind; name: string; account_number: string | null; rows: number; warnings: string[]; at: string; by: string | null }
+export interface LoanDetails {
+  loan_type?: string; sanction_date?: string; sanctioned_amount?: number; interest_rate?: number; tenure_months?: number; emi_amount?: number;
+  moratorium?: string; processing_fee?: string; security?: string; guarantee?: string; remarks?: string;
+}
+export interface StaffOverview {
+  client: { id: string; name: string; gstin: string | null };
+  files: (StaffFile & { fy: string })[];
+  statement_files: { id: string; submission_id: string; name: string; read: boolean; error: string | null }[];
+  loans: { id: string; fy: string; bank_name: string; account_number: string; schedule_rows: number; extracted: LoanDetails; saved: LoanDetails; details: LoanDetails; warnings: string[] }[];
+}
+interface Side { open: number; rec: number; pay: number; close: number }
+export interface BankWorkingSummary {
+  fy: string; account: { bank_name: string; account_number: string };
+  summary: { stmtLines: number; bookLines: number; matched: number; stmtOnly: number; booksOnly: number; monthsWithDifference: number; monthsCompared: number; unidentified: number };
+  warnings: string[]; has_ledger: boolean; has_26as: boolean; has_tis: boolean;
+  months: { month: string; label: string; stmt: Side | null; book: Side | null; diff: Side | null; has_diff: boolean; note: string }[];
+  recons: { label: string; stmt_close: number; book_close: number; check: number }[];
+}
+export interface LoanSummary {
+  closingBooks: number | null; closingSchedule: number | null; closingDiff: number | null; total: number; paid: number; pending: number;
+  pendingPrincipal: number; pendingInterest: number; pendingTotal: number; nextCount: number; nextPrincipal: number; laterCount: number; laterPrincipal: number;
+  short: number | null; long: number | null; basis: string; firstDate: string; lastDate: string;
+}
+export interface LoanWorkingSummary {
+  fy: string; totals: { closingBooks: number; closingSchedule: number; short: number; long: number; pending: number; pendingTotal: number }; warnings: string[];
+  loans: { id: string; label: string; summary: LoanSummary; points: string[]; months: { label: string; diff: { open: number; interest: number; installment: number; close: number } | null; remark: string }[] }[];
+}
+async function staffCall(path: string, init?: RequestInit, json = true) {
+  const res = await fetch(`${API_BASE}/banking/staff${path}`, { ...init, headers: getAuthHeaders(json) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Request failed");
+  }
+  return res.json();
+}
+export const bankingStaffApi = {
+  overview: (clientId: string): Promise<StaffOverview> => staffCall(`/overview?client_id=${clientId}`),
+  uploadFile: (clientId: string, fy: string, kind: StaffFileKind, file: File, account?: string): Promise<{ ok: boolean; id: string; rows: number; warnings: string[]; replaced: number }> => {
+    const fd = new FormData();
+    fd.append("client_id", clientId); fd.append("fy", fy); fd.append("kind", kind); fd.append("file", file);
+    if (account) fd.append("account_number", account);
+    return staffCall("/files", { method: "POST", body: fd }, false);
+  },
+  removeFile: (id: string) => staffCall(`/files/${id}`, { method: "DELETE" }),
+  saveLoan: (id: string, details: Record<string, string | number>) => staffCall(`/loans/${id}/details`, { method: "PUT", body: JSON.stringify(details) }),
+  bank: (clientId: string, fy: string, account: string): Promise<BankWorkingSummary> => staffCall(`/working/bank?client_id=${clientId}&fy=${fy}&account=${encodeURIComponent(account)}`),
+  bankExcel: async (clientId: string, fy: string, account: string) => {
+    const res = await fetch(`${API_BASE}/banking/staff/working/bank/excel?client_id=${clientId}&fy=${fy}&account=${encodeURIComponent(account)}`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not download the bank working");
+  },
+  loan: (clientId: string, fy: string, account?: string): Promise<LoanWorkingSummary> => staffCall(`/working/loan?client_id=${clientId}&fy=${fy}${account ? `&account=${encodeURIComponent(account)}` : ""}`),
+  loanExcel: async (clientId: string, fy: string, account?: string) => {
+    const res = await fetch(`${API_BASE}/banking/staff/working/loan/excel?client_id=${clientId}&fy=${fy}${account ? `&account=${encodeURIComponent(account)}` : ""}`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not download the loan working");
+  },
+};
+
+/* ------------------------------ input reconciliation (CA staff) ------------------------------ */
+
+export type InputKind = "books_itc" | "books_cash" | "books_tdstcs" | "books_rcm" | "gstr2b" | "gstr3b" | "portal_cash" | "portal_credit" | "work3b" | "final3b";
+export interface InputFile {
+  id: string; kind: InputKind; name: string; size: number; period: string | null; at: string; by: string | null;
+  info: { read: boolean; rows: number; from: string | null; to: string | null; period: string | null; warnings: string[]; claimed?: ItcHeads; ledgers?: string[] };
+}
+export interface ItcHeads { igst: number; cgst: number; sgst: number; cess: number }
+export interface RecoRow {
+  month: string; label: string; outsideYear: boolean; workingFile: string; portalFile: string;
+  working: { net: ItcHeads } | null; portal: { net: ItcHeads } | null; diff: ItcHeads | null; diffTotal?: number;
+  lineDiffs: { line: string; working: number; portal: number; diff: number }[];
+  status: "Matches" | "Does not match" | "No working" | "No GSTR-3B" | "Not uploaded"; remark: string;
+}
+export interface RecoState {
+  fy: string; rows: RecoRow[];
+  summary: { compared: number; matching: number; differing: number; noWorking: number; noPortal: number; none: number; workingTotal: number; portalTotal: number; diffTotal: number };
+  replaced: { name: string; period: string; side: string }[]; unplaced: { name: string; side: string }[];
+  have: { working: boolean; portal: boolean };
+}
+export interface ItcTotals extends ItcHeads { tot: number }
+export interface FinalPair {
+  id: "tb_g2b" | "books_tb" | "books_g2b"; a: string; b: string;
+  summary: { monthsDiffering: number; monthsCompared: number; partiesDiffering: number; parties: number; documentsDiffering: number };
+  months: { label: string; a: ItcTotals | null; b: ItcTotals | null; diff: ItcTotals; both: boolean }[];
+  diffs: { party: string; gstin: string; no: string; type: string; diff: number; remark: string }[];
+}
+/** Step 2: the final reconciliation of the books, GSTR-2B and the finalised GSTR-3B working. */
+export interface FinalState {
+  fy: string; ready: { books: boolean; g2b: boolean; tb: boolean };
+  counts: { books: number; tdsTcs: number; g2b: number; work3b: number; final3b: number; rcm: number };
+  source: { tb: "final" | "workings" | "none"; name: string };
+  warnings: string[]; pairs: FinalPair[];
+  tdsTcs: { category: string; books: ItcTotals; gstr2b: ItcTotals; tb: ItcTotals }[];
+  /** The reverse-charge reconciliation, month by month (sheet 12 of the final Excel). */
+  rcm: {
+    have: boolean;
+    summary: { months: number; differing: number; hasLedger: boolean; filedMonths: number; workingMonths: number };
+    totals: { ledger: Partial<ItcTotals>; ledgerItc: number; books: number; paid: Partial<ItcTotals>; claimed: Partial<ItcTotals> };
+    months: { label: string; ledger: { tot: number } | null; books: { entries: number; tot: number } | null; paid: { tot: number } | null; claimed: { tot: number } | null; diffLedgerPaid: number | null; diffPaidItc: number | null; diffLedgerBooks: number | null; status: "Agrees" | "Differs" | "Nothing to compare" | "No data"; remark: string }[];
+  };
+}
+/** The client's nature of business: it decides which reverse-charge categories apply. */
+export interface BusinessInfo { nature: string; detail: string; constitution: string; options: { key: string; label: string }[] }
+/** Books, RCM: the reverse charge worked out on the expense ledgers. */
+export interface RcmState {
+  fy: string; business: BusinessInfo; have: boolean; files: number;
+  totals: { entries: number; rcmEntries: number; expense: number; taxable: number; igst: number; cgst: number; sgst: number; tot: number; itc: number };
+  months: { month: string; entries: number; expense: number; rcmEntries: number; taxable: number; igst: number; cgst: number; sgst: number; tot: number; itc: number }[];
+  categories: { category: string; ref: string; entries: number; taxable: number; tax: number }[];
+  ledgers: { ledger: string; entries: number; amount: number; rcmEntries: number; tax: number }[];
+  held: number; heldSample: { party: string; ledger: string; amount: number; category: string; reason: string }[]; warnings: string[];
+}
+export interface InputState { client: { id: string; name: string; gstin: string | null }; fy: string; files: InputFile[]; business: BusinessInfo }
+async function inputCall(path: string, init?: RequestInit, json = true) {
+  const res = await fetch(`${API_BASE}/input-recon${path}`, { ...init, headers: getAuthHeaders(json) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Request failed");
+  }
+  return res.json();
+}
+export const inputReconApi = {
+  state: (clientId: string, fy: string): Promise<InputState> => inputCall(`?client_id=${clientId}&fy=${fy}`),
+  upload: (clientId: string, fy: string, kind: InputKind, files: File[]): Promise<{ results: { name: string; ok: boolean; error?: string; read?: boolean; rows?: number; warnings?: string[] }[] }> => {
+    const fd = new FormData();
+    fd.append("client_id", clientId); fd.append("fy", fy); fd.append("kind", kind);
+    files.forEach((f) => fd.append("files", f));
+    return inputCall("/upload", { method: "POST", body: fd }, false);
+  },
+  setPeriod: (id: string, period: string): Promise<{ ok: boolean; outside: boolean }> => inputCall(`/file/${id}`, { method: "PUT", body: JSON.stringify({ period }) }),
+  remove: (id: string) => inputCall(`/file/${id}`, { method: "DELETE" }),
+  download: async (id: string) => {
+    const res = await fetch(`${API_BASE}/input-recon/file/${id}/download`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not download the file");
+  },
+  /** One Excel of all the Input ITC ledger files (books), or of all the GSTR-2B and GSTR-3B files (GST portal). */
+  /** Input Reco: the ITC of each month's GSTR-3B working against the GSTR-3B filed. */
+  reco: (clientId: string, fy: string): Promise<RecoState> => inputCall(`/reco?client_id=${clientId}&fy=${fy}`),
+  /** Step 2: the three-way reconciliation, prepared from the files uploaded. */
+  final: (clientId: string, fy: string): Promise<FinalState> => inputCall(`/final?client_id=${clientId}&fy=${fy}`),
+  /** Books, RCM: the reverse charge worked out on the expense ledgers uploaded. */
+  rcm: (clientId: string, fy: string): Promise<RcmState> => inputCall(`/rcm?client_id=${clientId}&fy=${fy}`),
+  /** The client's nature of business, which decides the reverse-charge categories that apply. */
+  setBusiness: (clientId: string, nature: string): Promise<{ ok: boolean; business: BusinessInfo }> => inputCall("/business", { method: "PUT", body: JSON.stringify({ client_id: clientId, business_nature: nature }) }),
+  combined: async (what: "itc" | "portal" | "work3b" | "reco" | "final" | "rcm", clientId: string, fy: string) => {
+    const res = await fetch(`${API_BASE}/input-recon/combined/${what}?client_id=${clientId}&fy=${fy}`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not prepare the combined Excel");
+  },
+};
+
+/* ------------------------------ audit compliance ------------------------------ */
+
+export interface AuditFile { id: string; name: string; size: number; by: string | null; role: string | null; at: string }
+export interface AuditItem {
+  id: string; reqNo: number; seq: number; section: string; name: string; category: string; periodKind: string; period: string | null; periodLabel: string;
+  account: string; bank: string; note: string; status: "received" | "pending" | "na"; source: string; detail: string; manual: "received" | "na" | null; files: AuditFile[];
+}
+export interface AuditGroup {
+  key: string; reqNo: number; section: string; name: string; category: string; categoryLabel: string; account: string; bank: string; periodKind: string; note: string;
+  total: number; received: number; pending: number; na: number; pendingText: string; state: "complete" | "partial" | "pending"; itemIds: string[];
+}
+/** A query of the CA firm on a point of the audit programme, or the client's reply to it. */
+export interface AuditQueryMsg { id: string; role: "staff" | "client"; by: string | null; body: string; at: string }
+export interface AuditPoint {
+  id: string; seq: number; ref: string; section: string; name: string; detail: string; status: "pending" | "checked" | "query";
+  statusBy: string | null; statusAt: string | null; queries: AuditQueryMsg[]; awaiting: "client" | "staff" | null;
+}
+export interface AuditProgramme { points: number; checked: number; pending: number; query: number; awaitingClient: number; awaitingStaff: number }
+/** How one sheet of the workbook was read: as the audit programme, as the documents required, or skipped. */
+export interface AuditReadInfo { name: string; role: "programme" | "documents" | "skipped"; lines: number; column: string; headed?: boolean }
+export interface AuditChecklist {
+  id: string; fy: string; status: "draft" | "sent"; sentAt: string | null; sentBy: string | null; sourceName: string; uploadedBy: string | null; warnings: string[]; readInfo: AuditReadInfo[]; createdAt: string; updatedAt: string;
+  summary: { groups: AuditGroup[]; totals: { items: number; received: number; pending: number; na: number; documents: number; documentsPending: number }; bySource: Record<string, number> };
+  states: AuditItem[];
+  /** The programme totals (the CA firm only) and the points: every point for the CA firm, only the points with a query for the client. */
+  programme: AuditProgramme | null;
+  points: AuditPoint[];
+}
+export interface AuditState {
+  client: { id: string; name: string; gstin: string | null }; fy: string; years: { fy: string; status: "draft" | "sent" }[];
+  checklist: AuditChecklist | null; accounts: { account_number: string; bank_name: string }[];
+}
+async function auditCall(path: string, init?: RequestInit, json = true) {
+  const res = await fetch(`${API_BASE}/audit${path}`, { ...init, headers: getAuthHeaders(json) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Request failed");
+  }
+  return res.json();
+}
+export const auditApi = {
+  /** Staff name the client and year; a client sees only the checklists sent to them (the year is optional). */
+  state: (clientId: string, fy?: string): Promise<AuditState> => auditCall(`?client_id=${clientId}${fy ? `&fy=${fy}` : ""}`),
+  uploadSheet: (clientId: string, fy: string, file: File): Promise<{ ok: boolean; requirements: number; items: number; points: number; checklist: AuditChecklist }> => {
+    const fd = new FormData();
+    fd.append("client_id", clientId); fd.append("fy", fy); fd.append("file", file);
+    return auditCall("/sheet", { method: "POST", body: fd }, false);
+  },
+  send: (clientId: string, fy: string): Promise<{ ok: boolean; checklist: AuditChecklist }> => auditCall("/send", { method: "POST", body: JSON.stringify({ client_id: clientId, fy }) }),
+  mark: (itemId: string, manual: "received" | "na" | null) => auditCall(`/items/${itemId}`, { method: "PUT", body: JSON.stringify({ manual }) }),
+  markDocument: (clientId: string, fy: string, reqNo: number, account: string, manual: "received" | "na" | null) => auditCall("/documents", { method: "PUT", body: JSON.stringify({ client_id: clientId, fy, req_no: reqNo, account, manual }) }),
+  remove: (clientId: string, fy: string) => auditCall(`?client_id=${clientId}&fy=${fy}`, { method: "DELETE" }),
+  /** The CA firm sets a point of the audit programme to pending, checked or query. */
+  setPoint: (pointId: string, status: AuditPoint["status"]) => auditCall(`/points/${pointId}`, { method: "PUT", body: JSON.stringify({ status }) }),
+  /** A query on a point (the CA firm) or the reply to it (the client). */
+  postQuery: (pointId: string, body: string): Promise<{ ok: boolean; id: string }> => auditCall(`/points/${pointId}/queries`, { method: "POST", body: JSON.stringify({ body }) }),
+  deleteQuery: (queryId: string) => auditCall(`/queries/${queryId}`, { method: "DELETE" }),
+  /** A document uploaded beside its name in the checklist. */
+  uploadItem: (itemId: string, files: File[]): Promise<{ ok: boolean; uploaded: number; skipped: number }> => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return auditCall(`/items/${itemId}/upload`, { method: "POST", body: fd }, false);
+  },
+  deleteFile: (fileId: string) => auditCall(`/files/${fileId}`, { method: "DELETE" }),
+  downloadFile: async (fileId: string) => {
+    const res = await fetch(`${API_BASE}/audit/files/${fileId}/download`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not download the file");
+  },
+  /** The pending-documents Excel for the CA firm. */
+  exportList: async (clientId: string, fy: string) => {
+    const res = await fetch(`${API_BASE}/audit/export?client_id=${clientId}&fy=${fy}`, { headers: getAuthHeaders(false) });
+    return download(res, "Could not prepare the list");
+  },
+};
+
 /* ------------------------------ notifications ------------------------------ */
 
 export interface AppNotification {

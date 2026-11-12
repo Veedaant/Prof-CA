@@ -37,6 +37,17 @@ export async function putObject(storagePath, content, contentType = "application
   await fs.writeFile(full, content);
 }
 
+/** Best effort: a file that is already gone is not an error. */
+export async function deleteObject(storagePath) {
+  try {
+    const sb = await getSupabase();
+    if (sb) { await sb.storage.from(config.supabaseBucket).remove([storagePath]); return; }
+    await fs.rm(localPath(storagePath), { force: true });
+  } catch (e) {
+    console.error("[storage] could not delete", storagePath, e.message);
+  }
+}
+
 export async function saveFile(content, originalFilename, firmId, clientId, mime) {
   const fileHash = crypto.createHash("sha256").update(content).digest("hex");
   const ext = path.extname(originalFilename).toLowerCase().replace(/[^.a-z0-9]/g, "");

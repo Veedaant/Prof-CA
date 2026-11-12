@@ -4,6 +4,7 @@ import path from "node:path";
 import { db } from "../db/index.js";
 import { config } from "../config.js";
 import { HttpError, authenticate } from "../auth.js";
+import { SHEET_EXTS } from "../services/recon/sheetParser.js";
 import { isUuid, wrap } from "../http.js";
 import { putObject, readFile } from "../services/storage.js";
 import { readBooksItc, readGstr2b } from "../services/itc/readers.js";
@@ -98,7 +99,7 @@ router.post("/upload", upload.single("file"), wrap(async (req, res) => {
   const name = f.originalname.slice(0, 255);
 
   if (kind === "books" || kind === "gstr2b") {
-    if (![".xlsx", ".xlsm", ".csv"].includes(ext)) throw new HttpError(400, "Upload the Excel (.xlsx) or CSV file.");
+    if (!SHEET_EXTS.includes(ext)) throw new HttpError(400, "Upload the Excel file (any version) or a CSV file.");
     let parsed;
     try { parsed = kind === "books" ? await readBooksItc(f.buffer, f.originalname) : await readGstr2b(f.buffer, f.originalname, { clientGstin: client.gstin }); }
     catch (e) { throw new HttpError(422, e.message || "Could not read the file"); }

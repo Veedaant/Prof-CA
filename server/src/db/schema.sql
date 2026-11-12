@@ -332,3 +332,189 @@ create table if not exists output_settings (
 );
 alter table output_files enable row level security;
 alter table output_settings enable row level security;
+
+-- Banking: bank statements, and loan sanction letters with repayment schedules, uploaded by the client (or by the CA firm for them)
+create table if not exists banking_submissions (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  section varchar(10) not null check (section in ('statement','loan')),
+  account_number varchar(40) not null,
+  bank_name varchar(120) not null,
+  is_other_bank boolean not null default false,
+  uploaded_by uuid references users(id) on delete set null,
+  uploaded_by_name varchar(255),
+  uploaded_by_role varchar(10),
+  created_at timestamptz not null default now()
+);
+create index if not exists banking_submissions_idx on banking_submissions (firm_id, client_id, section, created_at desc);
+create table if not exists banking_files (
+  id uuid primary key default gen_random_uuid(),
+  submission_id uuid not null references banking_submissions(id) on delete cascade,
+  kind varchar(20) not null check (kind in ('statement','sanction_letter','repayment_schedule','other')),
+  storage_path varchar(500) not null,
+  original_filename varchar(255) not null,
+  file_size integer not null default 0,
+  mime_type varchar(100) not null,
+  file_hash varchar(64) not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists banking_files_submission_idx on banking_files (submission_id);
+alter table banking_submissions enable row level security;
+alter table banking_files enable row level security;
+
+-- Banking, second step: the financial year and period of each upload, loan details, and the CA firm's own files for the working
+alter table banking_submissions add column if not exists fy varchar(7);
+alter table banking_submissions add column if not exists period_from varchar(7);
+alter table banking_submissions add column if not exists period_to varchar(7);
+alter table banking_submissions add column if not exists loan_details jsonb not null default '{}'::jsonb;
+alter table banking_files add column if not exists parsed jsonb;
+alter table banking_files add column if not exists parse_error text;
+alter table banking_files add column if not exists parsed_ver smallint;
+create table if not exists banking_staff_files (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  fy varchar(7) not null,
+  kind varchar(12) not null check (kind in ('bank_ledger','form_26as','tis','loan_ledger')),
+  account_number varchar(40),
+  original_filename varchar(255) not null,
+  storage_path varchar(500) not null,
+  file_size integer not null default 0,
+  mime_type varchar(100) not null,
+  file_hash varchar(64) not null,
+  parsed jsonb,
+  warnings jsonb not null default '[]'::jsonb,
+  uploaded_by uuid references users(id) on delete set null,
+  uploaded_by_name varchar(255),
+  created_at timestamptz not null default now()
+);
+create index if not exists banking_staff_files_idx on banking_staff_files (firm_id, client_id, fy, kind);
+alter table banking_staff_files enable row level security;
+
+-- Input reconciliation: the CA firm's uploads of the books (ITC, cash, TDS/TCS ledgers) and the GST portal (GSTR-2B, GSTR-3B, cash and credit ledgers) for a financial year
+create table if not exists input_recon_files (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  fy varchar(7) not null,
+  kind varchar(16) not null check (kind in ('books_itc','books_cash','books_tdstcs','gstr2b','gstr3b','portal_cash','portal_credit')),
+  original_filename varchar(255) not null,
+  storage_path varchar(500) not null,
+  file_size integer not null default 0,
+  mime_type varchar(100) not null,
+  file_hash varchar(64) not null,
+  period varchar(7),
+  info jsonb not null default '{}'::jsonb,
+  uploaded_by uuid references users(id) on delete set null,
+  uploaded_by_name varchar(255),
+  created_at timestamptz not null default now()
+);
+create index if not exists input_recon_files_idx on input_recon_files (firm_id, client_id, fy, kind);
+alter table input_recon_files enable row level security;
+
+-- what was read from each input reconciliation file, kept so the combined Excel does not read the files again
+alter table input_recon_files add column if not exists data jsonb;
+alter table input_recon_files add column if not exists data_ver smallint;
+
+-- Input Reco: the monthly GSTR-3B workings (work3b) and the finalised combined GSTR-3B working (final3b) are file kinds of their own.
+-- One statement, so the constraint is never put back without a kind that already has rows.
+alter table input_recon_files drop constraint if exists input_recon_files_kind_check;
+alter table input_recon_files add constraint input_recon_files_kind_check check (kind in ('books_itc','books_cash','books_tdstcs','gstr2b','gstr3b','portal_cash','portal_credit','work3b','final3b','books_rcm'));
+
+-- Audit compliance: the list of documents the audit needs for a client and financial year (from the CA firm's documents-required sheet),
+-- sent to the client, who uploads against each document. Whether a document is in hand is worked out each time from these uploads and
+-- from what the client has given in the other sections (banking, GST), so the list stays current.
+create table if not exists audit_checklists (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  fy varchar(7) not null,
+  source_name varchar(255) not null,
+  status varchar(8) not null default 'draft' check (status in ('draft','sent')),
+  sent_at timestamptz,
+  sent_by_name varchar(255),
+  uploaded_by_name varchar(255),
+  warnings jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (client_id, fy)
+);
+create table if not exists audit_items (
+  id uuid primary key default gen_random_uuid(),
+  checklist_id uuid not null references audit_checklists(id) on delete cascade,
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  req_no integer not null,
+  seq integer not null,
+  section varchar(160) not null default '',
+  name text not null,
+  category varchar(24) not null,
+  period varchar(7),
+  period_kind varchar(8) not null default 'none',
+  period_label varchar(40) not null default '',
+  account_number varchar(40),
+  bank_name varchar(120),
+  note text,
+  item_key varchar(32) not null,
+  manual varchar(8) check (manual in ('received','na')),
+  manual_by varchar(255),
+  manual_at timestamptz
+);
+create index if not exists audit_items_idx on audit_items (checklist_id, req_no, seq);
+create table if not exists audit_files (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  checklist_id uuid not null references audit_checklists(id) on delete cascade,
+  item_id uuid references audit_items(id) on delete set null,
+  item_key varchar(32) not null,
+  storage_path varchar(500) not null,
+  original_filename varchar(255) not null,
+  file_size integer not null default 0,
+  mime_type varchar(100) not null,
+  file_hash varchar(64) not null,
+  uploaded_by uuid references users(id) on delete set null,
+  uploaded_by_name varchar(255),
+  uploaded_by_role varchar(10),
+  created_at timestamptz not null default now()
+);
+create index if not exists audit_files_item_idx on audit_files (checklist_id, item_id);
+alter table audit_checklists enable row level security;
+alter table audit_items enable row level security;
+alter table audit_files enable row level security;
+
+-- The audit programme: the points the auditor checks for a client and year (first sheet of the audit checklist workbook). Each point is
+-- pending, checked, or has a query out to the client; the queries and the client's replies are kept against the point.
+create table if not exists audit_points (
+  id uuid primary key default gen_random_uuid(),
+  checklist_id uuid not null references audit_checklists(id) on delete cascade,
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  seq integer not null,
+  ref varchar(20) not null default '',
+  section varchar(160) not null default '',
+  name text not null,
+  detail text,
+  item_key varchar(32) not null,
+  status varchar(8) not null default 'pending' check (status in ('pending','checked','query')),
+  status_by varchar(255),
+  status_at timestamptz
+);
+create index if not exists audit_points_idx on audit_points (checklist_id, seq);
+create table if not exists audit_queries (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  checklist_id uuid not null references audit_checklists(id) on delete cascade,
+  point_id uuid references audit_points(id) on delete set null,
+  point_key varchar(32) not null,
+  author_role varchar(10) not null,
+  author_name varchar(255),
+  body text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists audit_queries_idx on audit_queries (checklist_id, point_id, created_at);
+alter table audit_points enable row level security;
+alter table audit_queries enable row level security;
+alter table audit_checklists add column if not exists read_info jsonb not null default '[]'::jsonb;

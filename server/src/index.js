@@ -22,6 +22,10 @@ import gstr3bRoutes from "./routes/gstr3b.js";
 import itc2bRoutes, { resumeGstr1Reads } from "./routes/itc2b.js";
 import outputRoutes from "./routes/output.js";
 import notificationRoutes from "./routes/notifications.js";
+import bankingRoutes from "./routes/banking.js";
+import bankingStaffRoutes from "./routes/bankingStaff.js";
+import inputReconRoutes from "./routes/inputRecon.js";
+import auditRoutes from "./routes/audit.js";
 import { seedDatabase } from "./seeds/seed.js";
 import { resumeUnfinished } from "./routes/invoices.js";
 
@@ -56,6 +60,10 @@ export function createApp() {
   app.use("/api/itc2b", itc2bRoutes);
   app.use("/api/output", outputRoutes);
   app.use("/api/notifications", notificationRoutes);
+  app.use("/api/banking/staff", bankingStaffRoutes);
+  app.use("/api/banking", bankingRoutes);
+  app.use("/api/input-recon", inputReconRoutes);
+  app.use("/api/audit", auditRoutes);
   app.use("/api", (_req, res) => res.status(404).json({ detail: "Not found" }));
 
   const index = path.join(config.clientDist, "index.html");

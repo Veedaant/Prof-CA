@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "@/lib/router";
 import { usePathname } from "@/lib/router";
 import { useAuth } from "@/context/AuthContext";
-import { FileText, Upload, FileCheck, Users, Download, LogOut, Layers, GitCompare, UserCheck, ListChecks, ShieldCheck, Bell } from "lucide-react";
+import { FileText, Upload, FileCheck, Users, Download, LogOut, Layers, GitCompare, UserCheck, ListChecks, ShieldCheck, Bell, Landmark, Scale, ClipboardCheck, FolderOpen } from "lucide-react";
 import { notificationsApi } from "@/lib/api";
 
 const DEMO = [
@@ -33,11 +33,15 @@ export function Sidebar({ className = "" }: { className?: string }) {
     { label: "GST Details", href: "/gst", icon: FileText, show: !isStaffOrAdmin },
     { label: "GST", href: "/gst", icon: FileText, show: isStaffOrAdmin },
     { label: "Upload Invoices", href: "/upload", icon: Upload, show: isStaffOrAdmin },
+    { label: "Banking", href: "/banking", icon: Landmark, show: true },
     { label: "GSTR-1 Export", href: "/exports", icon: Download, show: isStaffOrAdmin },
     { label: "GSTR-3B Verification", href: "/verify-3b", icon: ShieldCheck, show: isStaffOrAdmin },
     { label: "GSTR-3B Export", href: "/exports-3b", icon: Download, show: isStaffOrAdmin },
     { label: "GSTR-2B Reconciliation", href: "/itc-2b", icon: GitCompare, show: isStaffOrAdmin },
     { label: "Output GST Reconciliation", href: "/output-recon", icon: GitCompare, show: isStaffOrAdmin },
+    { label: "Input Reconciliation", href: "/input-recon", icon: Scale, show: isStaffOrAdmin },
+    { label: "Audit Compliance", href: "/audit-compliance", icon: ClipboardCheck, show: isStaffOrAdmin },
+    { label: "Audit Documents", href: "/audit-documents", icon: FolderOpen, show: !isStaffOrAdmin },
     { label: "Reconciliation", href: "/reconciliation", icon: GitCompare, show: isStaffOrAdmin },
     { label: "Clients", href: "/clients", icon: Users, show: isStaffOrAdmin },
     { label: "Users", href: "/users", icon: UserCheck, show: isStaffOrAdmin },

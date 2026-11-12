@@ -1,6 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import ExcelJS from "exceljs";
+import { isSheetFile, readSheets } from "../services/recon/sheetParser.js";
 import { db } from "../db/index.js";
 import { config } from "../config.js";
 import { HttpError, authenticate, requireStaff } from "../auth.js";
@@ -78,17 +79,6 @@ router.get("/summary", wrap(async (req, res) => {
   });
 }));
 
-function cellValue(v) {
-  if (v === null || v === undefined) return "";
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  if (typeof v === "object") {
-    if ("result" in v) return cellValue(v.result);
-    if ("richText" in v) return v.richText.map((t) => t.text).join("");
-    if ("text" in v) return String(v.text);
-  }
-  return v;
-}
-
 function parseCsv(text) {
   const rows = [];
   let row = [], cur = "", q = false;
@@ -115,20 +105,13 @@ function parseCsv(text) {
 async function readRegister(file) {
   const name = file.originalname.toLowerCase();
   let grid;
-  if (name.endsWith(".xlsx")) {
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(file.buffer);
-    const ws = wb.worksheets[0];
-    grid = [];
-    ws?.eachRow({ includeEmpty: false }, (row) => {
-      const cells = [];
-      for (let c = 1; c <= row.cellCount; c++) cells.push(cellValue(row.getCell(c).value));
-      grid.push(cells);
-    });
+  if (isSheetFile(name) && !name.endsWith(".csv")) {
+    const rows = (await readSheets(file.buffer, file.originalname))[0]?.rows || [];
+    grid = rows.map((r) => r.map((c) => (c instanceof Date ? c.toISOString().slice(0, 10) : c)));
   } else if (name.endsWith(".csv") || name.endsWith(".txt")) {
     grid = parseCsv(file.buffer.toString("utf8").replace(/^﻿/, ""));
   } else {
-    throw new HttpError(400, "Only .xlsx or .csv files are supported for register matching");
+    throw new HttpError(400, "Only Excel (any version) or CSV files are supported for register matching");
   }
   if (!grid || grid.length < 2) throw new HttpError(400, "The uploaded register file contains no data rows");
   const headers = grid[0].map((h) => String(h).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""));

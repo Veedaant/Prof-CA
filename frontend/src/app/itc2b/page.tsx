@@ -361,9 +361,9 @@ export default function Itc2bPage() {
           {data && (
             <>
               <div className="grid md:grid-cols-3 gap-4">
-                <UploadCard no={1} title="ITC as per books" hint="The ITC register from the books in Excel: party, GSTIN, invoice no., date, taxable value, IGST, CGST, SGST and so on." accept=".xlsx,.xlsm,.csv"
+                <UploadCard no={1} title="ITC as per books" hint="The ITC register from the books in Excel: party, GSTIN, invoice no., date, taxable value, IGST, CGST, SGST and so on." accept=".xlsx,.xlsm,.xls,.xlsb,.csv"
                   file={data.uploads.books} busy={busy === "books"} onPick={pick("books")} onRemove={() => run("books", () => itc2bApi.remove(clientId, period, "books"))} />
-                <UploadCard no={2} title="GSTR-2B Excel" hint={`The Excel downloaded from the GST portal for ${periodLabel(period)} (B2B and B2B-CDNR sheets).`} accept=".xlsx,.xlsm,.csv"
+                <UploadCard no={2} title="GSTR-2B Excel" hint={`The Excel downloaded from the GST portal for ${periodLabel(period)} (B2B and B2B-CDNR sheets).`} accept=".xlsx,.xlsm,.xls,.xlsb,.csv"
                   file={data.uploads.gstr2b} busy={busy === "gstr2b"} onPick={pick("gstr2b")} onRemove={() => run("gstr2b", () => itc2bApi.remove(clientId, period, "gstr2b"))} />
                 <UploadCard no={3} title="GSTR-1 PDF" hint="The filed GSTR-1 (summary or full return) for the same month. The outward tax liability is read from it." accept=".pdf"
                   file={data.uploads.gstr1} busy={busy === "gstr1"} onPick={pick("gstr1")} onRemove={() => run("gstr1", () => itc2bApi.remove(clientId, period, "gstr1"))}

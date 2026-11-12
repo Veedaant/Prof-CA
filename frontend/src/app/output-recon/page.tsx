@@ -20,9 +20,9 @@ function currentFy() {
 const fyOptions = () => { const y0 = Number(currentFy().slice(0, 4)); return Array.from({ length: 10 }, (_, i) => { const y = y0 + 1 - i; return `${y}-${String((y + 1) % 100).padStart(2, "0")}`; }); };
 
 const KIND_INFO = {
-  books: { no: 1, title: "GST ledgers as per books", hint: "Output CGST / SGST / IGST ledgers, the sales ledger or the sales register, in Excel. Upload as many files as you have; they are combined.", accept: ".xlsx,.xlsm,.csv" },
-  gstr1: { no: 2, title: "GSTR-1 Excel files", hint: "The GSTR-1 Excel of each month, from the GST portal or the offline tool. Select all months together; the month is read from the file name.", accept: ".xlsx,.xlsm,.csv" },
-  gstr3b: { no: 3, title: "GSTR-3B for all months", hint: "The GSTR-3B of each month as PDF (from the portal) or Excel. Select all months together.", accept: ".pdf,.xlsx,.xlsm,.csv" },
+  books: { no: 1, title: "GST ledgers as per books", hint: "Output CGST / SGST / IGST ledgers, the sales ledger or the sales register, in Excel. Upload as many files as you have; they are combined.", accept: ".xlsx,.xlsm,.xls,.xlsb,.csv" },
+  gstr1: { no: 2, title: "GSTR-1 Excel files", hint: "The GSTR-1 Excel of each month, from the GST portal or the offline tool. Select all months together; the month is read from the file name.", accept: ".xlsx,.xlsm,.xls,.xlsb,.csv" },
+  gstr3b: { no: 3, title: "GSTR-3B for all months", hint: "The GSTR-3B of each month as PDF (from the portal) or Excel. Select all months together.", accept: ".pdf,.xlsx,.xlsm,.xls,.xlsb,.csv" },
 } as const;
 
 function FileRow({ f, months, onPeriod, onRemove, busy }: { f: OutFile; months: string[]; onPeriod: (p: string) => void; onRemove: () => void; busy: boolean }) {

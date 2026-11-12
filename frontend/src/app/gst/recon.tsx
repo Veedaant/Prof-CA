@@ -177,7 +177,7 @@ function FilesPanel({ clientId, kinds, defaultPeriod, periods, onChanged }: { cl
         </div>
         <label className={`${btn} cursor-pointer ${busy ? "opacity-40 pointer-events-none" : ""}`}>
           <Upload className="w-4 h-4" /> {busy ? "Uploading..." : "Choose file"}
-          <input type="file" className="hidden" accept=".xlsx,.xlsm,.csv" multiple={kind === "gstr3b"} onChange={pick} />
+          <input type="file" className="hidden" accept=".xlsx,.xlsm,.xls,.xlsb,.csv" multiple={kind === "gstr3b"} onChange={pick} />
         </label>
       </div>
       {kind === "gstr3b" && <p className="text-xs text-slate-500">For GSTR-3B the month is read from the PDF itself; the month selected above is used only if it cannot be read.</p>}
@@ -398,12 +398,12 @@ export function LedgerPanel({ clientId }: { clientId: string }) {
           <div className="flex gap-2 flex-wrap">
             <label className={`${btn} cursor-pointer ${busy ? "opacity-40 pointer-events-none" : ""}`}>
               <Upload className="w-4 h-4" /> {busy ? "Uploading..." : "Upload GSTR-1 file"}
-              <input type="file" className="hidden" accept=".xlsx,.xlsm,.csv" multiple onChange={pick} />
+              <input type="file" className="hidden" accept=".xlsx,.xlsm,.xls,.xlsb,.csv" multiple onChange={pick} />
             </label>
           </div>
         ) : (
           <BatchPicker
-            accept=".xlsx,.xlsm,.csv,.pdf,.png,.jpg,.jpeg"
+            accept=".xlsx,.xlsm,.xls,.xlsb,.csv,.pdf,.png,.jpg,.jpeg"
             busy={busy}
             noun={kind === "sales_ledger" ? "sales ledger" : "purchase ledger"}
             onUpload={uploadBatch}
